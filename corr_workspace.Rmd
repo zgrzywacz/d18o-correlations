@@ -1,0 +1,89 @@
+---
+title: "corr_workspace"
+author: "Zack Grzywacz"
+date: "October 30, 2020"
+output: html_document
+---
+
+
+Not sure if i need all of these
+```{r}
+library(ncdf4)
+library(raster)
+library(lubridate)
+library(ggplot2)
+library(lattice)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(rasterVis)
+library(viridis)
+library(seas)
+library(s2dverification)
+library(reshape2)
+library(dplyr)
+```
+
+
+
+### Data Download from ECHAM5‐wiso (monthly, 1 degree grid)
+https://zenodo.org/record/1249604#.XpnVbFNKhTZ
+
+Data sources, years, extent (could be variables in function call someday)
+SH extent can be changed to include pacific ocean, etc
+
+!!!! Change this so it opens all of the files
+Change the years?
+Change the extent
+```{r}
+netcdf.file <- "data/d18O_precip_mon_1871_2011.nc"
+
+F_yr <- 1958
+L_yr <- 2011
+years <- seq(F_yr, L_yr)
+ext <- extent(0, 180, -90, 0) 
+#ext <- extent(0, 180, -90, 0) #SH extent
+```
+
+Get a list of the variables to choose from and confirm that the time 
+origin and units are appropriate......
+(Units will be different for different files)
+```{r}
+nc <- ncdf4::nc_open(netcdf.file)
+
+#select the variable
+var.name <- names(nc[['var']])[1] #be sure this is the value you want
+
+summary(nc$dim$lon$vals) #if longitude is 0-360 needs to be rotated
+tunits <- ncdf4::ncatt_get(nc, "time", "units")
+print(tunits)
+
+ncdf4::nc_close(nc)
+```
+
+Rotate because the extent is 0-360 not 0-180 (takes a while)
+(Make sure you need to do this for all files)
+```{r}
+dat <- rotate(brick(netcdf.file, varname= var.name))
+```
+
+Crop to spatial extent for faster processessing
+(Crop to TAS for first part)
+```{r}
+datC <- crop(dat, ext)
+```
+
+!!! WRITE TO A FILE !!! so you don't have to open the netcdf files every time
+
+
+
+### Composite Analysis on SAM
+Extract Particular Years/Months from datC (climate raster brick)
+!!Dont think I need to do this here
+
+datY
+```{r}
+sel_y <- names(datC)[substr(names(datC), 2, 5) %in% years] 
+#use that index to subset the raster brick
+datY <- subset(datC, sel_y, value=T)
+tail(names(datY), 30) 
+```
