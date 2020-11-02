@@ -31,24 +31,54 @@ https://zenodo.org/record/1249604#.XpnVbFNKhTZ
 Data sources, years, extent (could be variables in function call someday)
 SH extent can be changed to include pacific ocean, etc
 
-!!!! Change this so it opens all of the files
+!!!! Change this so it opens all of the files (apply?)
 Change the years?
-Change the extent
+Changed to TAS extent
 ```{r}
-netcdf.file <- "data/d18O_precip_mon_1871_2011.nc"
-
+d18o.file <- "data/d18O_precip_mon_1871_2011.nc"
+evap.file <- "data/evap_mon_1871_2011.nc"
+precip.file <- "data/precip_mon_1871_2011.nc"
+ps.file <- "data/ps_mon_1871_2011.nc"
+qvi.file <- "data/qvi_mon_1871_2011.nc"
+relhum.file <- "data/relhum_mon_1871_2011.nc"
+slp.file <- "data/slp_mon_1871_2011.nc"
+t2m.file <- "data/t2m_mon_1871_2011.nc"
+wind10.file <- "data/wind10_mon_1871_2011.nc"
+  
 F_yr <- 1958
 L_yr <- 2011
 years <- seq(F_yr, L_yr)
-ext <- extent(0, 180, -90, 0) 
+ext <- extent(143.5, 148.6, -43.8, -39.5) 
 #ext <- extent(0, 180, -90, 0) #SH extent
+#ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
 ```
 
-Get a list of the variables to choose from and confirm that the time 
-origin and units are appropriate......
+
+```{r}
+echam_read <- function(x) {
+  nc <- ncdf4::nc_open(x)
+  var.name <- names(nc[['var']])[1]
+  ncdf4::nc_close(nc)
+ dat <- rotate(brick(x, varname= var.name))
+ datC <- crop(dat, ext)
+  return(datC)
+}
+
+```
+
+Do this for all files. Change file name in both lines
+
+```{r}
+datFile <- echam_read(wind10.file)
+saveRDS(datFile, file = "wind10.rds")
+```
+
+!!!All files are in Rdata
+
+confirm that the time origin and units are appropriate......
 (Units will be different for different files)
 ```{r}
-nc <- ncdf4::nc_open(netcdf.file)
+nc <- ncdf4::nc_open(d18o.file)
 
 #select the variable
 var.name <- names(nc[['var']])[1] #be sure this is the value you want
@@ -60,19 +90,19 @@ print(tunits)
 ncdf4::nc_close(nc)
 ```
 
-Rotate because the extent is 0-360 not 0-180 (takes a while)
-(Make sure you need to do this for all files)
+
+To save multiple R objects to one file (May not want to do this)
+
 ```{r}
-dat <- rotate(brick(netcdf.file, varname= var.name))
+# Saving on object in RData format
+save(data1, file = "data.RData")
+# Save multiple objects
+save(data1, data2, file = "data.RData")
+# To load the data again
+load("data.RData")
 ```
 
-Crop to spatial extent for faster processessing
-(Crop to TAS for first part)
-```{r}
-datC <- crop(dat, ext)
-```
 
-!!! WRITE TO A FILE !!! so you don't have to open the netcdf files every time
 
 
 
@@ -87,3 +117,6 @@ sel_y <- names(datC)[substr(names(datC), 2, 5) %in% years]
 datY <- subset(datC, sel_y, value=T)
 tail(names(datY), 30) 
 ```
+
+
+
