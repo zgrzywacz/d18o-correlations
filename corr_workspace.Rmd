@@ -33,7 +33,7 @@ SH extent can be changed to include pacific ocean, etc
 
 !!!! Change this so it opens all of the files (apply?)
 Change the years?
-Changed to TAS extent
+Changed to TAS extent. WILL HAVE TO REPEAT for SH extent (or just Indian Ocean)
 ```{r}
 d18o.file <- "data/d18O_precip_mon_1871_2011.nc"
 evap.file <- "data/evap_mon_1871_2011.nc"
@@ -99,24 +99,41 @@ save(data1, file = "data.RData")
 # Save multiple objects
 save(data1, data2, file = "data.RData")
 # To load the data again
-load("data.RData")
+load("data.RData") #Nope. readRDS()
 ```
 
-
-
-
-
-### Composite Analysis on SAM
-Extract Particular Years/Months from datC (climate raster brick)
-!!Dont think I need to do this here
-
-datY
 ```{r}
-sel_y <- names(datC)[substr(names(datC), 2, 5) %in% years] 
-#use that index to subset the raster brick
-datY <- subset(datC, sel_y, value=T)
-tail(names(datY), 30) 
+d18o <- readRDS("Rdata/d18o.rds")
+ps <- readRDS("Rdata/ps.rds")
 ```
+
+
+This is just a single variable over time
+```{r}
+time <- 1:nlayers(d18o)
+fun <- function(x) { lm(x ~ time)$coefficients[2] }
+x <- calc(d18o, fun)
+plot(x)
+```
+
+Two variables: 
+-Perform this for each variable with d18o
+```{r}
+corrs <- corLocal(evap, relhum, method = "pearson")
+plot(corrs)
+```
+
+next steps:
+-Experiment with this function/other functions
+-Extract values for point at MRD
+-Determine which influence the most, and use what we know about d18o to see if that makes sense
+-Turn into multple variable regression? Maybe unnecessary
+-Turn into moving-window (part 2)
+
+
+
+
+
 
 
 
