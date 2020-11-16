@@ -104,7 +104,7 @@ load("data.RData") #Nope. readRDS()
 
 ```{r}
 d18o <- readRDS("Rdata/d18o.rds")
-ps <- readRDS("Rdata/ps.rds")
+wind10 <- readRDS("Rdata/wind10.rds")
 ```
 
 
@@ -118,14 +118,36 @@ plot(x)
 
 Two variables: 
 -Perform this for each variable with d18o
+-change to gg plot to add map?
 ```{r}
-corrs <- corLocal(evap, relhum, method = "pearson")
+corrs <- corLocal(d18o, wind10, method = "pearson")
 plot(corrs)
 ```
 
+```{r}
+MRD_corrs <- data.frame()
+```
+
+```{r}
+MRD_corrs[8,1] <- "wind10"
+MRD_corrs[8,2] <- corrs[3,2]
+```
+
+```{r}
+write.csv(MRD_corrs,"MRD_corrs.csv", row.names = FALSE)
+```
+
+
+Find the cell for TAS
+
+```{r}
+wiso_mr <- extract_xy(145.527, -41.837, corrs, "MtRead")
+wiso_mr
+```
+
+
 next steps:
--Experiment with this function/other functions
--Extract values for point at MRD
+-Experiment with this function/other functions (MLR?)
 -Determine which influence the most, and use what we know about d18o to see if that makes sense
 -Turn into multple variable regression? Maybe unnecessary
 -Turn into moving-window (part 2)
