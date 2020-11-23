@@ -6,6 +6,11 @@ output: html_document
 ---
 
 
+```{r}
+install.packages("Hmisc")
+```
+
+
 Not sure if i need all of these
 ```{r}
 library(ncdf4)
@@ -21,6 +26,7 @@ library(seas)
 library(s2dverification)
 library(reshape2)
 library(dplyr)
+library(Hmisc)
 ```
 
 
@@ -34,6 +40,7 @@ SH extent can be changed to include pacific ocean, etc
 !!!! Change this so it opens all of the files (apply?)
 Change the years?
 Changed to TAS extent. WILL HAVE TO REPEAT for SH extent (or just Indian Ocean)
+#ext <- extent(50, 150, -75, 0)
 ```{r}
 d18o.file <- "data/d18O_precip_mon_1871_2011.nc"
 evap.file <- "data/evap_mon_1871_2011.nc"
@@ -113,7 +120,7 @@ This is just a single variable over time
 time <- 1:nlayers(d18o)
 fun <- function(x) { lm(x ~ time)$coefficients[2] }
 x <- calc(d18o, fun)
-plot(x)
+plot(d18o)
 ```
 
 Two variables: 
@@ -152,10 +159,131 @@ next steps:
 -Turn into multple variable regression? Maybe unnecessary
 -Turn into moving-window (part 2)
 
+```{r}
+test1 <- raster()
+```
+
+```{r}
+ncell(test1)
+```
 
 
 
+```{r}
+test <- raster(ncol=10, nrow=10)
+vals <- 1:ncell(test)
+test <- setValues(test, vals)
+```
+
+```{r}
+plot(test)
+```
+
+Crop netcdf data to ocean extent
+gather ncell()
+create an empty raster of the same number of cells, same extent
+extract 18o at MRD through time.
+extract the values at each variable for each cell through time.
+Correlate them. Assign the R2 value to each cell
+
+OR
+
+as.array(raster)
+(MAYBE abind if needed)
+Extract 18o at MRD through time <- make a file
+correlate arrays with 18o along Z axis (time)
+End up with R2 and p-value arrays
+Convert them to rasters
+
+Do this for other files:
+```{r}
+ar.18o <- as.array(d18o)
+ar.wind10 <- as.array(wind10)
+```
+
+Dimensions: 1:4 (lat), 1:5 (long), 1:1692 (months. 1692/12 = 141 years)
+
+```{r}
+ar.18o[,,1]
+```
+MRD is [3,2,]
 
 
+Extract a sequence for JUST Mount Read:
+```{r}
+MRD_18o <- ar.18o[3,2,]
+```
+
+```{r}
+apply(ar.wind10, 1:2, cor, MRD_18o)
+```
+
+```{r}
+apply(ar.wind10, 1:2, rcorr, MRD_18o, type="pearson")
+```
+
+This is in list form basically. The cells go like this
+
+1   5   9   13  17
+2   6   10  14  18
+3   7   11  15  19
+4   8   12  16  20
+
+```{r}
+z <- apply(ar.wind10, 1:2, rcorr, MRD_18o, type="pearson")
+```
+
+correlation = z[[x]][[1]][2]
+significance = z[[x]][[3]][2]
+
+Change (4,5) to new extent:
+
+```{r}
+corr = array(0, dim=c(4,5) )
+sig = array(0, dim=c(4,5) )
+```
+
+Change 20 to number of cells in new extent:
+
+```{r}
+for (x in 1:20)
+{
+corr[x] <- z[[x]][[1]][2]
+sig[x] <- z[[x]][[3]][2]
+}
+```
+
+```{r}
+sig
+```
+
+```{r}
+l <- list(corr, sig)
+a <- do.call(rbind, l)
+library(abind)
+a <- abind(l, along=3)
+a
+```
+
+Change this brick call to get correct resolution, extent, etc
+
+```{r}
+r <- brick(a)
+r
+```
+
+Next steps:
+-Crop (non-d18o) files to Oceanic extent
+-Run above correlation functions
+-Convert corr and sig arrays to raster files
+-Plotting, masking
+Products:
+ Combined corr/sig raster bricks for each variable
+ Sig-masked corr raster files
+
+samPC.p[samPC.p > 0.05] <- NA #mask out insignificant values
+samNC.p[samNC.p > 0.05] <- NA
+masked.p <- raster::mask(samPCr, samPC.p)
+masked.n <- raster::mask(samNCr, samNC.p)
 
 
