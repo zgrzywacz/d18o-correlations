@@ -6,9 +6,6 @@ output: html_document
 ---
 
 
-```{r}
-install.packages("Hmisc")
-```
 
 
 Not sure if i need all of these
@@ -55,7 +52,7 @@ wind10.file <- "data/wind10_mon_1871_2011.nc"
 F_yr <- 1958
 L_yr <- 2011
 years <- seq(F_yr, L_yr)
-ext <- extent(143.5, 148.6, -43.8, -39.5) 
+ext <- extent(50, 150, -75, 0) 
 #ext <- extent(0, 180, -90, 0) #SH extent
 #ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
 ```
@@ -77,7 +74,7 @@ Do this for all files. Change file name in both lines
 
 ```{r}
 datFile <- echam_read(wind10.file)
-saveRDS(datFile, file = "wind10.rds")
+saveRDS(datFile, file = "wind10_SH.rds")
 ```
 
 !!!All files are in Rdata
@@ -109,10 +106,17 @@ save(data1, data2, file = "data.RData")
 load("data.RData") #Nope. readRDS()
 ```
 
+Reading TAS R data:
 ```{r}
 d18o <- readRDS("Rdata/d18o.rds")
-wind10 <- readRDS("Rdata/wind10.rds")
 ```
+
+Reading SH R Data:
+
+```{r}
+wind10_SH <- readRDS("Rdata_SH/wind10_SH.rds")
+```
+
 
 
 This is just a single variable over time
@@ -195,10 +199,15 @@ correlate arrays with 18o along Z axis (time)
 End up with R2 and p-value arrays
 Convert them to rasters
 
+```{r}
+t2m_SH <- readRDS("Rdata_SH/t2m_SH.rds")
+```
+
+
 Do this for other files:
 ```{r}
 ar.18o <- as.array(d18o)
-ar.wind10 <- as.array(wind10)
+ar.t2m <- as.array(t2m_SH)
 ```
 
 Dimensions: 1:4 (lat), 1:5 (long), 1:1692 (months. 1692/12 = 141 years)
@@ -215,11 +224,11 @@ MRD_18o <- ar.18o[3,2,]
 ```
 
 ```{r}
-apply(ar.wind10, 1:2, cor, MRD_18o)
+apply(ar.precip, 1:2, cor, MRD_18o)
 ```
 
 ```{r}
-apply(ar.wind10, 1:2, rcorr, MRD_18o, type="pearson")
+apply(ar.evap, 1:2, rcorr, MRD_18o, type="pearson")
 ```
 
 This is in list form basically. The cells go like this
@@ -230,23 +239,28 @@ This is in list form basically. The cells go like this
 4   8   12  16  20
 
 ```{r}
-z <- apply(ar.wind10, 1:2, rcorr, MRD_18o, type="pearson")
+z <- apply(ar.t2m, 1:2, rcorr, MRD_18o, type="pearson")
 ```
 
 correlation = z[[x]][[1]][2]
 significance = z[[x]][[3]][2]
 
+```{r}
+wind10_SH
+```
+
+
 Change (4,5) to new extent:
 
 ```{r}
-corr = array(0, dim=c(4,5) )
-sig = array(0, dim=c(4,5) )
+corr = array(0, dim=c(67,89) )
+sig = array(0, dim=c(67,89) )
 ```
 
 Change 20 to number of cells in new extent:
 
 ```{r}
-for (x in 1:20)
+for (x in 1:5963)
 {
 corr[x] <- z[[x]][[1]][2]
 sig[x] <- z[[x]][[3]][2]
@@ -268,9 +282,18 @@ a
 Change this brick call to get correct resolution, extent, etc
 
 ```{r}
-r <- brick(a)
+r <- brick(a, xmn=50.0625, xmx=150.1875, ymn=-75.12556, ymx=0, crs=CRS("+proj=longlat +datum=WGS84"))
 r
 ```
+
+```{r}
+plot(r)
+```
+
+```{r}
+writeRaster(r, "t2mcorr")
+```
+
 
 Next steps:
 -Crop (non-d18o) files to Oceanic extent
