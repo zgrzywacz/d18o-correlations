@@ -114,7 +114,7 @@ d18o <- readRDS("Rdata/d18o.rds")
 Reading SH R Data:
 
 ```{r}
-wind10_SH <- readRDS("Rdata_SH/wind10_SH.rds")
+wind10 <- readRDS("Rdata/wind10.rds")
 ```
 
 
@@ -295,11 +295,35 @@ writeRaster(r, "t2mcorr")
 ```
 
 
+```{r}
+corrRas <- raster::subset(r,1)
+sigRas <- raster::subset(r,2)
+```
+
+```{r}
+sigRas[sigRas > 0.05] <- NA #mask out insignificant values
+sigRas[sigRas == 0] <- NA
+masked <- raster::mask(corrRas, sigRas)
+```
+
+```{r}
+plot(sigRas)
+```
+
+
+```{r}
+plot(corrRas)
+```
+
+
+```{r}
+plot(masked)
+```
+
+
 Next steps:
--Crop (non-d18o) files to Oceanic extent
--Run above correlation functions
--Convert corr and sig arrays to raster files
--Plotting, masking
+
+-masking
 Products:
  Combined corr/sig raster bricks for each variable
  Sig-masked corr raster files
