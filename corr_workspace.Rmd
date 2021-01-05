@@ -124,29 +124,18 @@ wind10 <- readRDS("Rdata/wind10.rds")
 Interlude: subsetting by month
 
 ```{r}
-datC <- readRDS("Rdata/wind10.rds")
+datC <- readRDS("Rdata/d18o.rds")
 ```
 
 ```{r}
 month <- "12"
-```
 
-```{r}
-head(names(datC))
-```
-
-
-```{r}
 sel_y <- names(datC)[substr(names(datC), 7, 8) %in% month] 
 #use that index to subset the raster brick
 datY <- subset(datC, sel_y, value=T)
 tail(names(datY), 30)
+save(datY, file = "monthly/d18o_Dec.rds")
 ```
-
-```{r}
-save(datY, file = "monthly/Wind10_Dec.rds")
-```
-
 
 
 
