@@ -6,8 +6,6 @@ output: html_document
 ---
 
 
-
-
 Not sure if i need all of these
 ```{r}
 library(ncdf4)
@@ -28,6 +26,135 @@ library(Hmisc)
 
 
 
+Turning netcdf into more easily stored R files:
+
+```{r}
+ERA5.file <- "data/Echam5_d18o.nc"
+```
+
+```{r}
+F_yr <- 1958
+L_yr <- 2013
+years <- seq(F_yr, L_yr)
+ext <- extent(0, 180, -90, 0) 
+#ext <- extent(0, 180, -90, 0) #SH extent
+#ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
+```
+
+Open the file to see if values go to 360
+```{r}
+nc <- ncdf4::nc_open(ERA5.file)
+
+#select the variable
+var.name <- names(nc[['var']])[1] #be sure this is the value you want
+
+summary(nc$dim$lon$vals) #if longitude is 0-360 needs to be rotated
+tunits <- ncdf4::ncatt_get(nc, "time", "units")
+print(tunits)
+
+ncdf4::nc_close(nc)
+```
+
+Function to read and crop a netcdf file
+```{r}
+ERA_read <- function(x) {
+  nc <- ncdf4::nc_open(x)
+  var.name <- names(nc[['var']])[1]
+  ncdf4::nc_close(nc)
+ dat <- rotate(brick(x, varname= var.name))
+ datC <- crop(dat, ext)
+  return(datC)
+}
+```
+
+
+```{r}
+datFile <- ERA_read(ERA5.file)
+saveRDS(datFile, file = "d18o.rds")
+```
+
+
+
+read in 18o data:
+```{r}
+d18o <- readRDS("d18o.rds")
+```
+
+Read in other data:
+```{r}
+ERA_t_79 <- readRDS("Rdata_SH/ERA5_t2m_1979_SH.rds")
+ERA_t_50 <- readRDS("Rdata_SH/ERA5_t2m_1950_SH.rds")
+```
+
+
+Plot a single variable's change over time
+```{r}
+time <- 1:nlayers(ERA5)
+fun <- function(x) { lm(x ~ time)$coefficients[2] }
+x <- calc(ERA5, fun)
+plot(x)
+```
+
+Do this for other files:
+```{r}
+ar.18o <- as.array(d18o)
+```
+
+```{r}
+ar.18o[,,1]
+```
+MRD is [2,2,]
+
+
+Extract a sequence for JUST Mount Read:
+```{r}
+MRD_18o <- ar.18o[2,2,]
+```
+
+
+Combine all of the ERA data together into a single stack (AND CROP TO 1958 - 2013! Change this if needed)
+```{r}
+ERA_temp <- stack(ERA_t_50, ERA_t_79)
+nlayers(ERA_temp)
+ERA_t2m <- subset(ERA_temp, 97:768)
+```
+
+
+```{r}
+ar.t2m <- as.array(ERA_t2m)
+```
+
+
+
+```{r}
+apply(ar.evap, 1:2, rcorr, MRD_18o, type="pearson")
+```
+
+This is in list form basically. The cells go like this
+
+1   5   9   13  17
+2   6   10  14  18
+3   7   11  15  19
+4   8   12  16  20
+
+```{r}
+z <- apply(ar.t2m, 1:2, rcorr, MRD_18o, type="pearson")
+```
+
+correlation = z[[x]][[1]][2]
+significance = z[[x]][[3]][2]
+
+
+
+
+
+
+
+###
+Old stuff below:
+
+
+
 ### Data Download from ECHAM5‐wiso (monthly, 1 degree grid)
 https://zenodo.org/record/1249604#.XpnVbFNKhTZ
 
@@ -39,20 +166,17 @@ Change the years?
 Changed to TAS extent. WILL HAVE TO REPEAT for SH extent (or just Indian Ocean)
 #ext <- extent(50, 150, -75, 0)
 ```{r}
-d18o.file <- "data/d18O_precip_mon_1871_2011.nc"
-evap.file <- "data/evap_mon_1871_2011.nc"
-precip.file <- "data/precip_mon_1871_2011.nc"
-ps.file <- "data/ps_mon_1871_2011.nc"
-qvi.file <- "data/qvi_mon_1871_2011.nc"
-relhum.file <- "data/relhum_mon_1871_2011.nc"
-slp.file <- "data/slp_mon_1871_2011.nc"
-t2m.file <- "data/t2m_mon_1871_2011.nc"
-wind10.file <- "data/wind10_mon_1871_2011.nc"
+d18o.file <- "data/Echam5-wiso.PD_nudged.d18O_prec.nc"
+evap.file <- "data/Echam5-wiso.PD_nudged.evap.nc"
+precip.file <- "data/Echam5-wiso.PD_nudged.prec.nc"
+tsurf.file <- "data/Echam5-wiso.PD_nudged.tsurf.nc"
+soilw.file <- "data/Echam5-wiso.PD_nudged.ws.nc"
+
   
 F_yr <- 1958
-L_yr <- 2011
+L_yr <- 2013
 years <- seq(F_yr, L_yr)
-ext <- extent(50, 150, -75, 0) 
+ext <- extent(0, 180, -90, 0) 
 #ext <- extent(0, 180, -90, 0) #SH extent
 #ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
 ```
@@ -73,9 +197,10 @@ echam_read <- function(x) {
 Do this for all files. Change file name in both lines
 
 ```{r}
-datFile <- echam_read(wind10.file)
-saveRDS(datFile, file = "wind10_SH.rds")
+datFile <- echam_read(d18o.file)
+saveRDS(datFile, file = "d18o.rds")
 ```
+
 
 !!!All files are in Rdata
 
@@ -114,14 +239,14 @@ d18o <- readRDS("Rdata/d18o.rds")
 Reading SH R Data:
 
 ```{r}
-wind10 <- readRDS("Rdata/wind10.rds")
+precip <- readRDS("Rdata_SH/precip_SH.rds")
 ```
 
 
 
 
 
-Interlude: subsetting by month
+### Interlude: subsetting by month ### 
 
 ```{r}
 datC <- readRDS("Rdata/d18o.rds")
@@ -139,6 +264,7 @@ save(datY, file = "monthly/d18o_Dec.rds")
 
 
 
+### Interlude over ###
 
 
 
@@ -153,11 +279,15 @@ save(datY, file = "monthly/d18o_Dec.rds")
 
 This is just a single variable over time
 ```{r}
-time <- 1:nlayers(d18o)
+time <- 1:nlayers(precip)
 fun <- function(x) { lm(x ~ time)$coefficients[2] }
-x <- calc(d18o, fun)
-plot(d18o)
+plot(d18o$X2004.06.15)
 ```
+```{r}
+x <- calc(d18o, fun)
+```
+
+
 
 Two variables: 
 -Perform this for each variable with d18o
