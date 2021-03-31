@@ -120,6 +120,13 @@ ERA_t2m <- subset(ERA_temp, 97:768)
 ```
 
 
+Possible solution: Write these files to raster instead of Rds (will have to do at the top)
+```{r}
+writeRaster(ERA_t2m, "FullERAt2m")
+```
+
+
+
 ```{r}
 ar.t2m <- as.array(ERA_t2m)
 ```
@@ -143,6 +150,62 @@ z <- apply(ar.t2m, 1:2, rcorr, MRD_18o, type="pearson")
 
 correlation = z[[x]][[1]][2]
 significance = z[[x]][[3]][2]
+
+Up next: create corr and sig arrays
+
+Change (67,89) to new extent:
+
+```{r}
+corr = array(0, dim=c(67,89) )
+sig = array(0, dim=c(67,89) )
+```
+
+Change 5963 to number of cells in new extent (ensure routing is correct):
+
+```{r}
+for (x in 1:5963)
+{
+corr[x] <- z[[x]][[1]][2]
+sig[x] <- z[[x]][[3]][2]
+}
+```
+
+```{r}
+sig
+```
+
+Make it the right structure(?)
+
+```{r}
+l <- list(corr, sig)
+a <- do.call(rbind, l)
+library(abind)
+a <- abind(l, along=3)
+a
+```
+
+Change this brick call to get correct resolution, extent, etc
+
+```{r}
+r <- brick(a, xmn=50.0625, xmx=150.1875, ymn=-75.12556, ymx=0, crs=CRS("+proj=longlat +datum=WGS84"))
+r
+```
+
+```{r}
+plot(r)
+```
+
+Create raster of corrs:
+
+```{r}
+writeRaster(r, "t2mcorr")
+```
+
+
+
+
+up next next:
+-Subset by month (see below)
 
 
 
