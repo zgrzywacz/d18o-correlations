@@ -5,6 +5,10 @@ date: "October 30, 2020"
 output: html_document
 ---
 
+```{r}
+ERA_precip$X1950.01.01.00.00.00
+```
+
 
 Not sure if i need all of these
 ```{r}
@@ -29,7 +33,8 @@ library(Hmisc)
 Turning netcdf into more easily stored R files:
 
 ```{r}
-ERA5.file <- "data/Echam5_d18o.nc"
+ERA5.file <- "data/ERA5_RH_1950.nc"
+ERA5.file2 <- "data/ERA5_RH_1979.nc"
 ```
 
 ```{r}
@@ -69,10 +74,18 @@ ERA_read <- function(x) {
 
 
 ```{r}
-datFile <- ERA_read(ERA5.file)
-saveRDS(datFile, file = "d18o.rds")
+ERA_t_50 <- ERA_read(ERA5.file)
+ERA_t_79 <- ERA_read(ERA5.file2)
 ```
 
+```{r}
+ERA_temp <- stack(ERA_t_50, ERA_t_79)
+nlayers(ERA_temp)
+```
+
+```{r}
+writeRaster(ERA_temp, "ERA5_RH")
+```
 
 
 read in 18o data:
@@ -82,8 +95,8 @@ d18o <- readRDS("d18o.rds")
 
 Read in other data:
 ```{r}
-ERA_t_79 <- readRDS("Rdata_SH/ERA5_t2m_1979_SH.rds")
-ERA_t_50 <- readRDS("Rdata_SH/ERA5_t2m_1950_SH.rds")
+ERA_precip <- brick("data/ERA5_precip.gri")
+ERA_t2m <- brick("data/ERA5_t2m.gri")
 ```
 
 
@@ -114,27 +127,21 @@ MRD_18o <- ar.18o[2,2,]
 
 Combine all of the ERA data together into a single stack (AND CROP TO 1958 - 2013! Change this if needed)
 ```{r}
-ERA_temp <- stack(ERA_t_50, ERA_t_79)
-nlayers(ERA_temp)
-ERA_t2m <- subset(ERA_temp, 97:768)
+ERA_t2m_sub <- subset(ERA_t2m, 97:768)
+ERA_precip_sub <- subset(ERA_precip, 97:768)
 ```
 
 
-Possible solution: Write these files to raster instead of Rds (will have to do at the top)
 ```{r}
-writeRaster(ERA_t2m, "FullERAt2m")
-```
-
-
-
-```{r}
-ar.t2m <- as.array(ERA_t2m)
+ar.t2m <- as.array(ERA_t2m_sub)
+ar.prcp <- as.array(ERA_precip_sub)
 ```
 
 
 
+
 ```{r}
-apply(ar.evap, 1:2, rcorr, MRD_18o, type="pearson")
+apply(ar.t2m, 1:2, rcorr, MRD_18o, type="pearson")
 ```
 
 This is in list form basically. The cells go like this
@@ -145,7 +152,7 @@ This is in list form basically. The cells go like this
 4   8   12  16  20
 
 ```{r}
-z <- apply(ar.t2m, 1:2, rcorr, MRD_18o, type="pearson")
+z <- apply(ar.prcp, 1:2, rcorr, MRD_18o, type="pearson")
 ```
 
 correlation = z[[x]][[1]][2]
@@ -156,23 +163,25 @@ Up next: create corr and sig arrays
 Change (67,89) to new extent:
 
 ```{r}
-corr = array(0, dim=c(67,89) )
-sig = array(0, dim=c(67,89) )
+corr = array(0, dim=c(360,720) )
+sig = array(0, dim=c(360,720) )
 ```
 
 Change 5963 to number of cells in new extent (ensure routing is correct):
 
+Must transpose corr and sig to get right dimensions
 ```{r}
-for (x in 1:5963)
+for (x in 1:259200)
 {
 corr[x] <- z[[x]][[1]][2]
 sig[x] <- z[[x]][[3]][2]
 }
+corr <- t(corr)
+sig <- t(sig)
 ```
 
-```{r}
-sig
-```
+
+
 
 Make it the right structure(?)
 
@@ -187,10 +196,10 @@ a
 Change this brick call to get correct resolution, extent, etc
 
 ```{r}
-r <- brick(a, xmn=50.0625, xmx=150.1875, ymn=-75.12556, ymx=0, crs=CRS("+proj=longlat +datum=WGS84"))
+r <- brick(a, xmn=0.125, xmx=180.125, ymn=-89.875, ymx=0,125, crs=CRS("+proj=longlat +datum=WGS84"))
 r
 ```
-
+0.125, 180.125, -89.875, 0.125  (xmin, xmax, ymin, ymax)
 ```{r}
 plot(r)
 ```
@@ -198,14 +207,30 @@ plot(r)
 Create raster of corrs:
 
 ```{r}
-writeRaster(r, "t2mcorr")
+writeRaster(r, "o18_prcp_corr")
 ```
 
 
 
 
-up next next:
--Subset by month (see below)
+Subsetting by month
+
+```{r}
+datC <- brick("data/ERA5_t2m.gri")
+```
+
+```{r}
+month <- "12" # Month you want to subser
+
+sel_y <- names(datC)[substr(names(datC), 7, 8) %in% month] #Creates true/false field of rasters for that month
+#use that index to subset the raster brick
+datY <- subset(datC, sel_y, value=T) #subsets the dataset of only those that are true
+tail(names(datY), 30)
+writeRaster(datY, "o18_Dec")
+```
+
+
+
 
 
 
