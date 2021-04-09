@@ -5,10 +5,6 @@ date: "October 30, 2020"
 output: html_document
 ---
 
-```{r}
-ERA_precip$X1950.01.01.00.00.00
-```
-
 
 Not sure if i need all of these
 ```{r}
@@ -33,15 +29,15 @@ library(Hmisc)
 Turning netcdf into more easily stored R files:
 
 ```{r}
-ERA5.file <- "data/ERA5_RH_1950.nc"
-ERA5.file2 <- "data/ERA5_RH_1979.nc"
+ERA5.file <- "data/ERA5_prcp_1950.nc"
+ERA5.file2 <- "data/ERA5_prcp_1979.nc"
 ```
 
 ```{r}
 F_yr <- 1958
 L_yr <- 2013
 years <- seq(F_yr, L_yr)
-ext <- extent(0, 180, -90, 0) 
+ext <- extent(143.5, 148.6, -43.8, -39.5) 
 #ext <- extent(0, 180, -90, 0) #SH extent
 #ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
 ```
@@ -83,9 +79,12 @@ ERA_temp <- stack(ERA_t_50, ERA_t_79)
 nlayers(ERA_temp)
 ```
 
+
+
 ```{r}
-writeRaster(ERA_temp, "ERA5_RH")
+writeRaster(ERA_temp, "ERA5_prcp_TAS")
 ```
+
 
 
 read in 18o data:
@@ -112,6 +111,11 @@ Do this for other files:
 ```{r}
 ar.18o <- as.array(d18o)
 ```
+
+```{r}
+write.csv(MRD_18o, file="MRD_d18o.csv")
+```
+
 
 ```{r}
 ar.18o[,,1]
