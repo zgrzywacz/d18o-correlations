@@ -29,15 +29,20 @@ library(Hmisc)
 Turning netcdf into more easily stored R files:
 
 ```{r}
-ERA5.file <- "data/ERA5_prcp_1950.nc"
-ERA5.file2 <- "data/ERA5_prcp_1979.nc"
+ERA5.file <- "data/ERA5_evap_1950.nc"
+ERA5.file2 <- "data/ERA5_evap_1979.nc"
 ```
 
 ```{r}
+getwd()
+```
+
+
+```{r}
 F_yr <- 1958
-L_yr <- 2013
+L_yr <- 2019
 years <- seq(F_yr, L_yr)
-ext <- extent(143.5, 148.6, -43.8, -39.5) 
+ext <- extent(0, 180, -90, 0) 
 #ext <- extent(0, 180, -90, 0) #SH extent
 #ext <- extent(143.5, 148.6, -43.8, -39.5) #TAS Extent
 ```
@@ -68,7 +73,6 @@ ERA_read <- function(x) {
 }
 ```
 
-
 ```{r}
 ERA_t_50 <- ERA_read(ERA5.file)
 ERA_t_79 <- ERA_read(ERA5.file2)
@@ -80,9 +84,8 @@ nlayers(ERA_temp)
 ```
 
 
-
 ```{r}
-writeRaster(ERA_temp, "ERA5_prcp_TAS")
+writeRaster(ERA_temp, "ERA5_evap_TAS")
 ```
 
 
